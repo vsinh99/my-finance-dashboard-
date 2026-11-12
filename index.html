@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827"><meta name="description" content="Private personal finance dashboard">
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icons/icon-192.png">
+<title>My Finance Dashboard</title>
+<style>
+:root{--bg:#0b1220;--panel:#121d2e;--panel2:#172438;--text:#edf3fb;--muted:#9aabc0;--line:#26364d;--green:#35c58a;--red:#ff7272;--blue:#75aaff;--gold:#f5c76a}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#0b1220,#101b2c 55%,#0b1220);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,sans-serif;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}
+main{max-width:1050px;margin:auto;padding:18px 0 40px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}.brand{font-size:22px;font-weight:800;letter-spacing:.2px}.sub{color:var(--muted);font-size:12px;margin-top:3px}
+button,input,select{font:inherit}button{border:0;border-radius:11px;padding:11px 14px;background:#28466b;color:white;font-weight:650;cursor:pointer}button.secondary{background:#223148;color:#dce8f7}button.danger{background:#512d38}button.small{padding:7px 10px;font-size:12px}
+select,input{background:#0c1727;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;min-width:0}label{font-size:12px;color:var(--muted);display:block;margin:0 0 6px}.controls{display:flex;gap:8px;align-items:center}.controls select{width:auto;min-width:135px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.card,.panel{background:rgba(18,29,46,.96);border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 8px 26px #0002}.metric-label{font-size:12px;color:var(--muted)}.metric{font-size:clamp(20px,4vw,27px);font-weight:800;margin-top:7px;overflow-wrap:anywhere}.positive{color:var(--green)}.negative{color:var(--red)}.muted{color:var(--muted)}.section{margin-top:17px}.section-title{font-size:16px;font-weight:750;margin:0 0 10px}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.three{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.panel h3{font-size:14px;margin:0 0 12px}.barrow{margin:10px 0}.barhead{display:flex;justify-content:space-between;font-size:12px;gap:8px}.bar{height:8px;background:#26364d;border-radius:99px;overflow:hidden;margin-top:6px}.bar>i{display:block;height:100%;border-radius:99px;background:var(--blue)}.bar>i.red{background:var(--red)}.bar>i.green{background:var(--green)}.bar>i.gold{background:var(--gold)}
+.tabs{display:flex;gap:7px;overflow:auto;padding:14px 0 3px}.tabs button{white-space:nowrap;background:#1a2a40}.tabs button.active{background:#dceaff;color:#102039}.tab{display:none}.tab.active{display:block}
+.formgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.field.full{grid-column:1/-1}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px;min-width:570px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:600}.right{text-align:right}.empty{padding:20px;text-align:center;color:var(--muted);font-size:13px}.notice{background:#1b2c42;border:1px solid #304965;color:#c6d8ed;padding:11px;border-radius:12px;font-size:12px;line-height:1.5}.split{display:flex;justify-content:space-between;gap:12px;align-items:center}.tiny{font-size:11px;color:var(--muted)}.hidden{display:none!important}
+@media(max-width:700px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}.three{grid-template-columns:1fr 1fr}.formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.brand{font-size:20px}}
+@media(max-width:390px){.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+</style>
+</head>
+<body><main>
+<header class="top"><div><div class="brand">◈ MY FINANCE</div><div class="sub">Your money. Your overview. Stored on this device.</div></div>
+<div class="controls"><select id="month"></select><button class="secondary small" id="exportBtn">Export backup</button></div></header>
+<div class="notice">🔒 Your entries are saved in this browser on this device. No bank account is connected. Export a backup regularly, especially before clearing browser data or changing phones.</div>
+<section class="section grid" id="metrics"></section>
+<div class="tabs">
+<button class="active" data-tab="overview">Overview</button><button data-tab="transactions">Transactions</button><button data-tab="budget">Budget</button><button data-tab="investments">Investments</button><button data-tab="networth">Assets & debts</button><button data-tab="reports">Reports</button>
+</div>
+<section id="overview" class="tab active section">
+<div class="two">
+<div class="panel"><h3>Monthly cash flow</h3><div id="cashflow"></div></div>
+<div class="panel"><h3>Expense breakdown</h3><div id="expenseBreakdown"></div></div>
+</div>
+<div class="two section">
+<div class="panel"><h3>Investment portfolio</h3><div id="portfolio"></div></div>
+<div class="panel"><h3>Budget health</h3><div id="budgetHealth"></div></div>
+</div>
+</section>
+<section id="transactions" class="tab section">
+<div class="panel"><h3>Add transaction</h3><form id="txForm"><div class="formgrid">
+<div class="field"><label>Date</label><input type="date" id="txDate" required></div>
+<div class="field"><label>Type</label><select id="txType"><option>Income</option><option>Expense</option><option>Investment</option><option>Savings</option><option>Debt/EMI</option></select></div>
+<div class="field"><label>Category</label><input id="txCategory" list="categories" placeholder="e.g. Salary, Food" required><datalist id="categories"><option>Salary</option><option>Business</option><option>Food</option><option>Rent</option><option>Travel</option><option>Bills</option><option>Shopping</option><option>Health</option><option>Gold</option><option>Silver</option><option>Mutual Fund</option><option>Stocks</option><option>Other</option></datalist></div>
+<div class="field"><label>Amount (₹)</label><input type="number" id="txAmount" min="0.01" step="0.01" required placeholder="0"></div>
+<div class="field"><label>Payment method</label><select id="txMethod"><option>UPI</option><option>Cash</option><option>Bank</option><option>Debit card</option><option>Credit card</option><option>Other</option></select></div>
+<div class="field"><label>Note</label><input id="txNote" placeholder="Optional"></div></div><div class="actions"><button type="submit">＋ Add transaction</button></div></form></div>
+<div class="panel section"><div class="split"><h3>Transactions for selected month</h3><span class="tiny" id="txCount"></span></div><div class="tablewrap" id="txTable"></div></div>
+</section>
+<section id="budget" class="tab section">
+<div class="panel"><h3>Set monthly category budgets</h3><form id="budgetForm"><div class="formgrid">
+<div class="field"><label>Category</label><input id="budgetCategory" required placeholder="e.g. Groceries"></div>
+<div class="field"><label>Budget amount (₹)</label><input id="budgetAmount" type="number" min="0" step=".01" required></div>
+<div class="field"><label>Month</label><input id="budgetMonth" type="month" required></div></div><div class="actions"><button>Save budget</button></div></form></div>
+<div class="panel section"><h3>Budget vs actual</h3><div id="budgetTable"></div></div>
+</section>
+<section id="investments" class="tab section">
+<div class="panel"><h3>Add / update investment holding</h3><form id="invForm"><div class="formgrid">
+<div class="field"><label>Asset class</label><select id="invClass"><option>Gold</option><option>Silver</option><option>Mutual Fund</option><option>Stocks</option><option>ETF</option><option>FD/RD</option><option>Crypto</option><option>Other</option></select></div>
+<div class="field"><label>Investment / symbol</label><input id="invName" required placeholder="e.g. UTI Silver Fund"></div>
+<div class="field"><label>Platform</label><input id="invPlatform" placeholder="e.g. Groww"></div>
+<div class="field"><label>Total invested (₹)</label><input id="invCost" type="number" min="0" step=".01" required></div>
+<div class="field"><label>Current value (₹)</label><input id="invValue" type="number" min="0" step=".01" required></div>
+<div class="field"><label>As of date</label><input id="invDate" type="date" required></div></div><div class="actions"><button>Save holding</button></div></form></div>
+<div class="panel section"><h3>Portfolio holdings</h3><div id="invTable"></div></div>
+</section>
+<section id="networth" class="tab section">
+<div class="panel"><h3>Track bank balances & other assets</h3><form id="assetForm"><div class="formgrid">
+<div class="field"><label>Type</label><select id="assetType"><option>Bank balance</option><option>Cash</option><option>Other asset</option><option>Loan / liability</option><option>Credit card due</option></select></div>
+<div class="field"><label>Name</label><input id="assetName" required placeholder="e.g. HDFC savings"></div>
+<div class="field"><label>Current amount (₹)</label><input id="assetAmount" type="number" min="0" step=".01" required></div></div><div class="actions"><button>Save balance</button></div></form></div>
+<div class="panel section"><h3>Assets & liabilities</h3><div id="assetTable"></div><div id="netWorthSummary"></div></div>
+</section>
+<section id="reports" class="tab section">
+<div class="two"><div class="panel"><h3>Monthly trend (last 6 months)</h3><div id="trend"></div></div><div class="panel"><h3>Financial health indicators</h3><div id="indicators"></div></div></div>
+<div class="panel section"><h3>Data tools</h3><div class="actions"><button id="exportBtn2">Export JSON backup</button><label class="secondary" style="padding:11px 14px;border-radius:11px;cursor:pointer">Import backup <input type="file" id="importFile" accept="application/json" class="hidden"></label><button class="danger" id="clearBtn">Delete all data</button></div><p class="tiny">Import replaces the data currently saved in this browser. Keep a backup first.</p></div>
+</section>
+<footer class="section tiny">Personal tracking tool • Values are entered by you • Not financial advice</footer>
+</main>
+<script>
+const KEY='myFinanceDashboard_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"tx":[],"budgets":[],"investments":[],"assets":[]}');
+const $=id=>document.getElementById(id), today=new Date();
+const ym=d=>{let x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')};
+const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const selected=()=> $('month').value;
+function save(){localStorage.setItem(KEY,JSON.stringify(db));render()}
+function months(){let set=new Set([ym(today),...db.tx.map(x=>x.month),...db.budgets.map(x=>x.month)]);let arr=[...set].sort().reverse();$('month').innerHTML=arr.map(m=>`<option value="${m}">${new Date(m+'-02').toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</option>`).join('');$('month').value=arr.includes(ym(today))?ym(today):arr[0]}
+function sum(list){return list.reduce((a,x)=>a+Number(x.amount||0),0)}
+function bar(label,val,max,color=''){return `<div class="barrow"><div class="barhead"><span>${esc(label)}</span><b>${money(val)}</b></div><div class="bar"><i class="${color}" style="width:${max?Math.max(0,Math.min(100,val/max*100)):0}%"></i></div></div>`}
+function table(headers,rows){if(!rows.length)return '<div class="empty">No entries yet. Add your first record above.</div>';return `<div class="tablewrap"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`}
+function render(){
+let m=selected(),tx=db.tx.filter(x=>x.month===m),income=sum(tx.filter(x=>x.type==='Income')),expense=sum(tx.filter(x=>x.type==='Expense')),invest=sum(tx.filter(x=>x.type==='Investment')),savings=sum(tx.filter(x=>x.type==='Savings')),debtpay=sum(tx.filter(x=>x.type==='Debt/EMI')),surplus=income-expense-invest-savings-debtpay;
+let portfolio=sum(db.investments.map(x=>({amount:x.value}))),assets=sum(db.assets.filter(x=>!['Loan / liability','Credit card due'].includes(x.type)).map(x=>({amount:x.amount}))),liabs=sum(db.assets.filter(x=>['Loan / liability','Credit card due'].includes(x.type)).map(x=>({amount:x.amount}))),net=portfolio+assets-liabs;
+$('metrics').innerHTML=[['Income',income,'positive'],['Expenses',expense,'negative'],['Invested this month',invest,''],['Surplus after outflows',surplus,surplus>=0?'positive':'negative'],['Savings entries',savings,''],['Debt / EMI paid',debtpay,''],['Investment value',portfolio,''],['Net worth (tracked)',net,net>=0?'positive':'negative']].map(a=>`<div class="card"><div class="metric-label">${a[0]}</div><div class="metric ${a[2]}">${money(a[1])}</div></div>`).join('');
+$('cashflow').innerHTML=[bar('Income',income,Math.max(income,expense,invest,savings,debtpay,1),'green'),bar('Expenses',expense,Math.max(income,expense,invest,savings,debtpay,1),'red'),bar('Investments',invest,Math.max(income,expense,invest,savings,debtpay,1)),bar('Surplus',Math.max(0,surplus),Math.max(income,1),'gold')].join('');
+let cats={};tx.filter(x=>x.type==='Expense').forEach(x=>cats[x.category]=(cats[x.category]||0)+Number(x.amount));let entries=Object.entries(cats).sort((a,b)=>b[1]-a[1]);$('expenseBreakdown').innerHTML=entries.length?entries.map(([k,v])=>bar(k,v,expense,'red')).join(''):'<div class="empty">No expenses recorded for this month.</div>';
+let classes={};db.investments.forEach(x=>classes[x.cls]=(classes[x.cls]||0)+Number(x.value));$('portfolio').innerHTML=Object.entries(classes).length?Object.entries(classes).sort((a,b)=>b[1]-a[1]).map(([k,v])=>bar(k,v,portfolio,'gold')).join(''):'<div class="empty">Add your investment holdings to see allocation.</div>';
+let budgets=db.budgets.filter(x=>x.month===m);$('budgetHealth').innerHTML=budgets.length?budgets.map(b=>{let actual=sum(tx.filter(x=>x.type==='Expense'&&x.category.toLowerCase()===b.category.toLowerCase()).map(x=>({amount:x.amount})));return bar(b.category+' · '+(actual<=b.amount?'Within budget':'Over budget'),actual,b.amount,actual<=b.amount?'green':'red')}).join(''):'<div class="empty">Set category budgets to track spending.</div>';
+$('txCount').textContent=tx.length+' records';$('txTable').innerHTML=table(['Date','Type','Category','Note','Amount',''],tx.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.type)}</td><td>${esc(x.category)}</td><td>${esc(x.note)}</td><td>${money(x.amount)}</td><td><button class="danger small" onclick="delTx('${x.id}')">Delete</button></td></tr>`));
+let bRows=budgets.map(b=>{let a=sum(tx.filter(x=>x.type==='Expense'&&x.category.toLowerCase()===b.category.toLowerCase()).map(x=>({amount:x.amount})));return `<tr><td>${esc(b.category)}</td><td>${money(b.amount)}</td><td>${money(a)}</td><td class="${a>b.amount?'negative':'positive'}">${money(b.amount-a)}</td><td>${a>b.amount?'Over budget':'Within budget'}</td></tr>`});$('budgetTable').innerHTML=table(['Category','Budget','Actual','Remaining','Status'],bRows);
+$('invTable').innerHTML=table(['Asset class','Holding','Platform','Invested','Value','Gain / loss','Return',''],db.investments.map(x=>{let g=x.value-x.cost,r=x.cost?g/x.cost*100:0;return `<tr><td>${esc(x.cls)}</td><td>${esc(x.name)}</td><td>${esc(x.platform)}</td><td>${money(x.cost)}</td><td>${money(x.value)}</td><td class="${g>=0?'positive':'negative'}">${money(g)}</td><td>${r.toFixed(2)}%</td><td><button class="danger small" onclick="delItem('investments','${x.id}')">Delete</button></td></tr>`}));
+$('assetTable').innerHTML=table(['Type','Name','Amount',''],db.assets.map(x=>`<tr><td>${esc(x.type)}</td><td>${esc(x.name)}</td><td>${money(x.amount)}</td><td><button class="danger small" onclick="delItem('assets','${x.id}')">Delete</button></td></tr>`));
+$('netWorthSummary').innerHTML=`<p class="split"><span>Assets incl. investments</span><b>${money(assets+portfolio)}</b></p><p class="split"><span>Liabilities</span><b class="negative">${money(liabs)}</b></p><p class="split"><b>Tracked net worth</b><b class="positive">${money(net)}</b></p>`;
+let last=[];for(let i=5;i>=0;i--){let d=new Date(today.getFullYear(),today.getMonth()-i,1),key=ym(d),list=db.tx.filter(x=>x.month===key);last.push({m:d.toLocaleDateString('en-IN',{month:'short'}),income:sum(list.filter(x=>x.type==='Income')),expense:sum(list.filter(x=>x.type==='Expense'))})}
+let max=Math.max(1,...last.flatMap(x=>[x.income,x.expense]));$('trend').innerHTML=last.map(x=>`<div class="barrow"><div class="barhead"><b>${x.m}</b><span>In ${money(x.income)} · Out ${money(x.expense)}</span></div><div class="bar"><i class="green" style="width:${x.income/max*100}%"></i></div><div class="bar"><i class="red" style="width:${x.expense/max*100}%"></i></div></div>`).join('');
+let er=income?expense/income*100:0,ir=income?invest/income*100:0,sr=income?surplus/income*100:0;$('indicators').innerHTML=[['Expense ratio',er],['Investment ratio',ir],['Surplus rate',sr]].map(([k,v])=>bar(k,v,100,'gold')+`<div class="tiny">${v.toFixed(1)}% of monthly income</div>`).join('');
+}
+function delTx(id){db.tx=db.tx.filter(x=>x.id!==id);save()}function delItem(key,id){db[key]=db[key].filter(x=>x.id!==id);save()}
+function id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+$('txDate').value=today.toISOString().slice(0,10);$('invDate').value=today.toISOString().slice(0,10);$('budgetMonth').value=ym(today);
+$('txForm').onsubmit=e=>{e.preventDefault();let date=$('txDate').value;db.tx.push({id:id(),date,month:date.slice(0,7),type:$('txType').value,category:$('txCategory').value.trim(),amount:+$('txAmount').value,method:$('txMethod').value,note:$('txNote').value.trim()});e.target.reset();$('txDate').value=today.toISOString().slice(0,10);save()};
+$('budgetForm').onsubmit=e=>{e.preventDefault();let month=$('budgetMonth').value,category=$('budgetCategory').value.trim();db.budgets=db.budgets.filter(x=>!(x.month===month&&x.category.toLowerCase()===category.toLowerCase()));db.budgets.push({id:id(),month,category,amount:+$('budgetAmount').value});e.target.reset();$('budgetMonth').value=ym(today);save()};
+$('invForm').onsubmit=e=>{e.preventDefault();db.investments.push({id:id(),cls:$('invClass').value,name:$('invName').value.trim(),platform:$('invPlatform').value.trim(),cost:+$('invCost').value,value:+$('invValue').value,date:$('invDate').value});e.target.reset();$('invDate').value=today.toISOString().slice(0,10);save()};
+$('assetForm').onsubmit=e=>{e.preventDefault();db.assets.push({id:id(),type:$('assetType').value,name:$('assetName').value.trim(),amount:+$('assetAmount').value});e.target.reset();save()};
+function backup(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='finance-backup-'+ym(today)+'.json';a.click();URL.revokeObjectURL(a.href)}
+$('exportBtn').onclick=backup;$('exportBtn2').onclick=backup;$('importFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let x=JSON.parse(await f.text());if(!x.tx||!x.budgets||!x.investments||!x.assets)throw Error();db=x;save();alert('Backup imported successfully.')}catch{alert('Invalid backup file.')}};
+$('clearBtn').onclick=()=>{if(confirm('Delete ALL finance data saved in this browser? Export a backup first.')){db={tx:[],budgets:[],investments:[],assets:[]};save()}};
+$('month').onchange=render;document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.tab).classList.add('active')});
+months();render();if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script></body></html>
